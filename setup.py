@@ -14,7 +14,7 @@ setup(
     description='GW (LIGO) utilities',
     long_description=readme(),
     long_description_content_type="text/markdown",
-    version="0.0.1",
+    version="0.0.2",
     author='genghisken',
     author_email='ken.w.smith@gmail.com',
     license='MIT',
@@ -40,6 +40,6 @@ setup(
       ],
     python_requires='>=3.7',
     entry_points = {
-        'console_scripts': ['downloadGWAlerts=gkligo.utils.python.downloadGWAlerts:main'],
+        'console_scripts': ['downloadGWAlerts=gkligo.scripts.python.downloadGWAlerts:main'],
     },
 )
