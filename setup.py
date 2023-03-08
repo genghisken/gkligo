@@ -36,6 +36,7 @@ setup(
           'ligo.skymap',
           'astropy',
           'mocpy',
+          'pyYAML',
       ],
     python_requires='>=3.7',
     entry_points = {

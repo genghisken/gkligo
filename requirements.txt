@@ -1,0 +1,9 @@
+astropy>=5.2.1
+docopt>=0.6.2
+gcn-kafka>=0.3.0
+gkutils>=0.2.22
+healpy>=1.16.2
+ligo-gracedb>=2.10.0
+ligo.skymap>=1.0.6
+numpy>=1.24.1
+PyYAML>=6.0

@@ -8,6 +8,7 @@ The code requires the following python packages:
 * healpy
 * gkutils
 * docopt
+* pyYAML
 * numpy
 * ligo.skymap
 * astropy
