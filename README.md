@@ -19,3 +19,8 @@ The command line utilities are:
 
 The config_example.yaml file is an example config file. Copy it and rename to config.yaml.
 Get your credentials by following the first part of the [Kafka Notices via GCN](https://emfollow.docs.ligo.org/userguide/tutorial/receiving/gcn.html) tutorial. Leave the topics configuration unchanged.
+
+TO DO:
+* Convert into a Daemon
+* Create a log file
+
