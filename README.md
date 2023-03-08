@@ -2,7 +2,9 @@
 Code to download GW Alert skymaps from Kafka, and optionally write them
 out and/or convert them to MOC files at specified contours.
 
-The code requires the following python packages:
+The code is based on code written by Roy Williams and Leo Singer.
+
+It requires the following python packages:
 
 * gcn-kafka
 * healpy
