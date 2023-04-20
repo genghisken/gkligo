@@ -12,9 +12,11 @@ astropy
 mocpy
 
 Usage:
-  %s <configFile> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>]
+  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>]
   %s (-h | --help)
   %s --version
+
+where action is start|stop|restart
 
 Options:
   -h --help                    Show this screen.
@@ -23,11 +25,13 @@ Options:
   --writeMOC                   Write the MOC file (selected contour)
   --directory=<directory>      Directory to where the maps and MOCs will be written [default: /tmp].
   --contours=<contours>        Which MOC contours do you want? Multiple contours should be separated by commas, with no spaces [default: 90]
+  --pidfile=<pidfile>          PID file [default: /tmp/ligo.pid]
+  --logfile=<logfile>          PID file [default: /tmp/ligo.log]
 
 E.g.:
-  %s config.yaml --directory=/home/atls/ligo --writeMap
-  %s config.yaml --writeMap --writeMOC --directory=/tmp --contours=90
-  %s config.yaml --writeMOC --directory=/tmp --contours=90,50,10
+  %s config.yaml start --directory=/home/atls/ligo --writeMap
+  %s config.yaml start --writeMap --writeMOC --directory=/tmp --contours=90
+  %s config.yaml start --writeMOC --directory=/tmp --contours=90,50,10
 
 """
 import sys
@@ -39,8 +43,16 @@ import json
 import base64
 from gkutils.commonutils import Struct, cleanOptions
 from io import BytesIO
+import daemon
+from daemon import pidfile
+import signal
+import os
+import time
+import logging
 
-def writeMOC(inputFilePointer, outputMOCName, contour):
+debug_p = True
+
+def writeMOC(inputFilePointer, outputMOCName, contour, logger):
     from astropy.table import Table
     from astropy import units as u
     import astropy_healpix as ah
@@ -51,7 +63,7 @@ def writeMOC(inputFilePointer, outputMOCName, contour):
     # Read and verify the input
     skymap = Table.read(inputFilePointer, format='fits')
     #print('Input multi-order skymap:')
-    print(skymap.info)
+    logger.info(skymap.info)
 
     # Sort by prob density of pixel
     skymap.sort('PROBDENSITY', reverse=True)
@@ -66,44 +78,56 @@ def writeMOC(inputFilePointer, outputMOCName, contour):
 
     # Should be 1.0. But need not be.
     sumprob = np.sum(prob)
-    print('Sum probability = %.3f\n' % sumprob)
+    logger.info('Sum probability = %.3f\n' % sumprob)
 
     # Find the index where contour of prob is inside
     i = cumprob.searchsorted(contour*sumprob)
     area_wanted = pixel_area[:i].sum()
-    print('Area of %.2f contour is %.2f sq deg' % \
+    logger.info('Area of %.2f contour is %.2f sq deg' % \
         (contour, area_wanted * (180/math.pi)**2))
 
     # A MOC is just an astropy Table with one column of healpix indexes
     skymap = skymap[:i]
     skymap = skymap['UNIQ',]
-    print(skymap.info)
+    logger.info(skymap.info)
     skymap.write(outputMOCName, format='fits', overwrite=True)
-    print('MOC file %s written' % outputMOCName)
+    logger.info('MOC file %s written' % outputMOCName)
 
 
-def main():
-    opts = docopt(__doc__, version='0.1')
-    opts = cleanOptions(opts)
+def runLigoDaemon(options):
+    ### This does the "work" of the daemon
 
-    # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
-    options = Struct(**opts)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
-    import yaml
-    with open(options.configFile) as yaml_file:
-        config = yaml.safe_load(yaml_file)
+    fh = logging.FileHandler(options.logfile)
+    fh.setLevel(logging.INFO)
 
-    client_id = config['client_id']
-    client_secret = config['client_secret']
-    topic = config['topics']
+    formatstr = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(formatstr)
 
-    # Connect as a consumer.
-    # Warning: don't share the client secret with others.
-    consumer = Consumer(client_id=client_id,
-                        client_secret=client_secret)
+    fh.setFormatter(formatter)
 
-    # Subscribe to topics and receive alerts
-    consumer.subscribe(['igwn.gwalert'])
+    logger.addHandler(fh)
+
+    try:
+        import yaml
+        with open(options.configFile) as yaml_file:
+            config = yaml.safe_load(yaml_file)
+
+        client_id = config['client_id']
+        client_secret = config['client_secret']
+        topic = config['topics']
+
+        # Connect as a consumer.
+        # Warning: don't share the client secret with others.
+        consumer = Consumer(client_id=client_id,
+                            client_secret=client_secret)
+
+        # Subscribe to topics and receive alerts
+        consumer.subscribe(['igwn.gwalert'])
+    except Exception as e:
+        logger.error(e)
 
     while True:
         for message in consumer.consume():
@@ -115,7 +139,7 @@ def main():
                 alertTimeStamp = dataDict['time_created'].replace(' ','T')
                 alertType = dataDict['alert_type']
                 alertName = superEventId + '_' + alertType + '_' + alertTimeStamp
-                print("Alert Received: %s" % alertName) # Future version of this script will log the output.
+                logger.info("Alert Received: %s" % alertName) # Future version of this script will log the output.
                 if dataDict['event'] is not None and options.writeMap:
                     skymap = dataDict['event']['skymap']
                     with open(options.directory + '/' + alertName + '.fits', 'wb') as fitsFile:
@@ -126,15 +150,93 @@ def main():
                         skymap = dataDict['event']['skymap']
                         try:
                             c = float(contour)/100.0
-                            writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c)
+                            writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
                         except ValueError as e:
-                            print("Contour %s is not a float" % contour)
+                            logger.error("Contour %s is not a float" % contour)
 
 
             except KeyError as e:
-                print(e)
+                logger.error(e)
                 pass
-            print()
+            logger.info("")
+
+
+def start_daemon(options):
+    ### This launches the daemon in its context
+
+    global debug_p
+
+    if debug_p:
+        print("eg_daemon: entered run()")
+        print("eg_daemon: pidfile = {}    logfile = {}".format(options.pidfile, options.logfile))
+        print("eg_daemon: about to start daemonization")
+
+    ### XXX pidfile is a context
+    with daemon.DaemonContext(
+        working_directory='/tmp',
+        umask=0o002,
+        pidfile=pidfile.TimeoutPIDLockFile(options.pidfile),
+        ) as context:
+        runLigoDaemon(options)
+
+
+
+
+def main():
+    opts = docopt(__doc__, version='0.1')
+    opts = cleanOptions(opts)
+
+    # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
+    options = Struct(**opts)
+
+
+    if options.action not in ['start', 'stop', 'restart']:
+        sys.stderr.write('Valid options for action are start|stop|restart\n')
+        sys.exit(1)
+
+    if options.action == 'start':
+        if os.path.exists(options.pidfile):
+            with open(options.pidfile, mode='r') as f:
+                pid = f.read().strip()
+                sys.stderr.write("Daemon is already running (PID = %s). Stop and restart if you want to restart it.\n" % pid)
+        else:
+            start_daemon(options)
+            with open(options.pidfile, mode='r') as f:
+                pid = f.read().strip()
+                print("Starting Daemon. PID = %s" % pid)
+
+    if options.action == 'stop':
+        if os.path.exists(options.pidfile):
+            with open(options.pidfile, mode='r') as f:
+                pid = f.read().strip()
+                print("Stopping daemon (PID = %s)." % pid)
+                os.kill(int(pid), signal.SIGKILL)
+        else:
+            sys.stderr.write("Daemon is not running.\n")
+
+
+    if options.action == 'restart':
+        if os.path.exists(options.pidfile):
+            with open(options.pidfile, mode='r') as f:
+                pid = f.read().strip()
+                print("Stopping daemon (PID = %s)." % pid)
+                os.kill(pid, signal.SIGTERM)
+        else:
+            start_daemon(options)
+            if os.path.exists(options.pidfile):
+                with open(options.pidfile, mode='r') as f:
+                    pid = f.read().strip()
+                    print("Starting Daemon. PID = %s" % pid)
+            else:
+                print ("Daemon not started.")
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main()
