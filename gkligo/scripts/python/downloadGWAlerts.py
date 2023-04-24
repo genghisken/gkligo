@@ -12,21 +12,24 @@ astropy
 mocpy
 
 Usage:
-  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>]
+  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>] [--daemonErrFile=<deamonErrFile>] [--daemonOutFile=<deamonOutFile>] [--terminal]
   %s (-h | --help)
   %s --version
 
 where action is start|stop|restart
 
 Options:
-  -h --help                    Show this screen.
-  --version                    Show version.
-  --writeMap                   Write the Map file
-  --writeMOC                   Write the MOC file (selected contour)
-  --directory=<directory>      Directory to where the maps and MOCs will be written [default: /tmp].
-  --contours=<contours>        Which MOC contours do you want? Multiple contours should be separated by commas, with no spaces [default: 90]
-  --pidfile=<pidfile>          PID file [default: /tmp/ligo.pid]
-  --logfile=<logfile>          PID file [default: /tmp/ligo.log]
+  -h --help                         Show this screen.
+  --version                         Show version.
+  --writeMap                        Write the Map file
+  --writeMOC                        Write the MOC file (selected contour)
+  --directory=<directory>           Directory to where the maps and MOCs will be written [default: /tmp].
+  --contours=<contours>             Which MOC contours do you want? Multiple contours should be separated by commas, with no spaces [default: 90]
+  --pidfile=<pidfile>               PID file [default: /tmp/ligo.pid]
+  --logfile=<logfile>               PID file [default: /tmp/ligo.log]
+  --daemonErrFile=<daemonErrFile>   Daemon Error File - for recording unexpected errors [default: /tmp/ligodaemonerr.log].
+  --daemonOutFile=<daemonOutFile>   Daemon Out File - for recording unexpected output [default: /tmp/ligodaemonout.log].
+  --terminal                        Override the Daemon error and out files and write to the terminal. 
 
 E.g.:
   %s config.yaml start --directory=/home/atls/ligo --writeMap
@@ -110,24 +113,21 @@ def runLigoDaemon(options):
 
     logger.addHandler(fh)
 
-    try:
-        import yaml
-        with open(options.configFile) as yaml_file:
-            config = yaml.safe_load(yaml_file)
+    import yaml
+    with open(options.configFile) as yaml_file:
+        config = yaml.safe_load(yaml_file)
 
-        client_id = config['client_id']
-        client_secret = config['client_secret']
-        topic = config['topics']
+    client_id = config['client_id']
+    client_secret = config['client_secret']
+    topic = config['topics']
 
-        # Connect as a consumer.
-        # Warning: don't share the client secret with others.
-        consumer = Consumer(client_id=client_id,
-                            client_secret=client_secret)
+    # Connect as a consumer.
+    # Warning: don't share the client secret with others.
+    consumer = Consumer(client_id=client_id,
+                        client_secret=client_secret)
 
-        # Subscribe to topics and receive alerts
-        consumer.subscribe(['igwn.gwalert'])
-    except Exception as e:
-        logger.error(e)
+    # Subscribe to topics and receive alerts
+    consumer.subscribe(['igwn.gwalert'])
 
     while True:
         for message in consumer.consume():
@@ -171,14 +171,23 @@ def start_daemon(options):
         print("eg_daemon: pidfile = {}    logfile = {}".format(options.pidfile, options.logfile))
         print("eg_daemon: about to start daemonization")
 
+
+    if options.terminal:
+        err = sys.stderr
+        out = sys.stdout
+    else:
+        out = open(options.daemonOutFile, 'w')
+        err = open(options.daemonErrFile, 'w')
+
     ### XXX pidfile is a context
     with daemon.DaemonContext(
         working_directory='/tmp',
         umask=0o002,
         pidfile=pidfile.TimeoutPIDLockFile(options.pidfile),
+        stdout=out,
+        stderr=err
         ) as context:
         runLigoDaemon(options)
-
 
 
 
@@ -201,6 +210,8 @@ def main():
                 sys.stderr.write("Daemon is already running (PID = %s). Stop and restart if you want to restart it.\n" % pid)
         else:
             start_daemon(options)
+            # Give the daemon a few seconds to start
+            time.sleep(2)
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
                 print("Starting Daemon. PID = %s" % pid)
@@ -209,8 +220,11 @@ def main():
         if os.path.exists(options.pidfile):
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
-                print("Stopping daemon (PID = %s)." % pid)
-                os.kill(int(pid), signal.SIGKILL)
+            print("Stopping daemon (PID = %s)." % pid)
+            os.kill(int(pid), signal.SIGKILL)
+            time.sleep(2)
+            if os.path.exists(options.pidfile):
+                os.remove(options.pidfile)
         else:
             sys.stderr.write("Daemon is not running.\n")
 
@@ -219,19 +233,20 @@ def main():
         if os.path.exists(options.pidfile):
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
-                print("Stopping daemon (PID = %s)." % pid)
-                os.kill(pid, signal.SIGTERM)
+            print("Stopping daemon (PID = %s)." % pid)
+            os.kill(pid, signal.SIGKILL)
+            time.sleep(2)
+            if os.path.exists(options.pidfile):
+                os.remove(options.pidfile)
         else:
             start_daemon(options)
+            time.sleep(2)
             if os.path.exists(options.pidfile):
                 with open(options.pidfile, mode='r') as f:
                     pid = f.read().strip()
-                    print("Starting Daemon. PID = %s" % pid)
+                print("Starting Daemon. PID = %s" % pid)
             else:
                 print ("Daemon not started.")
-
-
-
 
 
 
