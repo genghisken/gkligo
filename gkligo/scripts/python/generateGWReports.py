@@ -72,7 +72,7 @@ def getPanSTARRSExposures(conn, options, warpstack = 'W'):
             FROM
                 tcs_cmf_metadata m
             WHERE
-                filename LIKE "%%.%sS.%%"
+                filename LIKE concat('%%.', %s, 'S.%%')
             AND
                 mjd_obs > mjdnow() - %s
             ORDER BY mjd_obs DESC
