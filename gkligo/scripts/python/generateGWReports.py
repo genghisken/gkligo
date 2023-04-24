@@ -128,36 +128,37 @@ def main():
     pso4ExpsWS = getPanSTARRSExposures(connpso4, options, warpstack = 'W')
     pso4ExpsSS = getPanSTARRSExposures(connpso4, options, warpstack = 'S')
 
-    if len(atlasExps) > 0:
-        with open(options.outputlocation + '/atlasExps.csv', 'w') as f:
+    # Write files even if they are empty.
+    with open(options.outputlocation + '/' + databaseatlas + 'Exps.csv', 'w') as f:
+        if len(atlasExps) > 0:
             w = csv.DictWriter(f, atlasExps[0].keys(), delimiter = ',')
             w.writeheader()
             for row in atlasExps:
                 w.writerow(row)
 
-    if len(panstarrsExpsWS) > 0:
-        with open(options.outputlocation + '/panstarrsExpsWS.csv', 'w') as f:
+    with open(options.outputlocation + '/' + databaseps + 'WSExps.csv', 'w') as f:
+        if len(panstarrsExpsWS) > 0:
             w = csv.DictWriter(f, panstarrsExpsWS[0].keys(), delimiter = ',')
             w.writeheader()
             for row in panstarrsExpsWS:
                 w.writerow(row)
 
-    if len(panstarrsExpsSS) > 0:
-        with open(options.outputlocation + '/panstarrsExpsSS.csv', 'w') as f:
+    with open(options.outputlocation + '/' + databaseps + 'SSExps.csv', 'w') as f:
+        if len(panstarrsExpsSS) > 0:
             w = csv.DictWriter(f, panstarrsExpsSS[0].keys(), delimiter = ',')
             w.writeheader()
             for row in panstarrsExpsSS:
                 w.writerow(row)
 
-    if len(pso4ExpsWS) > 0:
-        with open(options.outputlocation + '/pso4ExpsWS.csv', 'w') as f:
+    with open(options.outputlocation + '/' + databasepso4 + 'WSExps.csv', 'w') as f:
+        if len(pso4ExpsWS) > 0:
             w = csv.DictWriter(f, pso4ExpsWS[0].keys(), delimiter = ',')
             w.writeheader()
             for row in pso4ExpsWS:
                 w.writerow(row)
 
-    if len(pso4ExpsSS) > 0:
-        with open(options.outputlocation + '/pso4ExpsSS.csv', 'w') as f:
+    with open(options.outputlocation + '/' + databasepso4 + 'SSExps.csv', 'w') as f:
+        if len(pso4ExpsSS) > 0:
             w = csv.DictWriter(f, pso4ExpsSS[0].keys(), delimiter = ',')
             w.writeheader()
             for row in pso4ExpsSS:
