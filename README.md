@@ -22,7 +22,7 @@ The command line utilities are:
 The config_example.yaml file is an example config file. Copy it and rename to config.yaml.
 Get your credentials by following the first part of the [Kafka Notices via GCN](https://emfollow.docs.ligo.org/userguide/tutorial/receiving/gcn.html) tutorial. Leave the topics configuration unchanged.
 
-TO DO:
-* Convert into a Daemon
-* Create a log file
+The code has been daemonised so one of the parameters will be start|restart|stop.
+
+Also included is a script called generateGWReports. This will generate coverage reports (CSV files) from the three database (ATLAS, all sky Pan-STARRS, O4 follwup Pan-STARRS).
 

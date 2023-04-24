@@ -32,6 +32,7 @@ build
 settings.py
 wsgi.py
 config.yaml
+config_reports.yaml
 PS1TransientClassifier
 IngestDetectionsMain
 ConeSearch
