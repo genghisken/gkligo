@@ -7,9 +7,9 @@ Usage:
   %s --version
 
 Options:
-  -h --help                         Show this screen.
-  --version                         Show version.
-  --outputlocaton=<outputlocaton>   Location to store the results [default: /tmp].
+  -h --help                           Show this screen.
+  --version                           Show version.
+  --outputlocation=<outputlocation>   Location to store the results [default: /tmp].
 
 E.g.:
   %s config.yaml 21
@@ -123,33 +123,45 @@ def main():
     connpso4 = dbConnect(hostnamepso4, usernamepso4, passwordpso4, databasepso4)
 
     atlasExps = getATLASExposures(connatlas, options)
-    panstarrsExps = getPanSTARRSExposures(connps, options)
+    panstarrsExpsWS = getPanSTARRSExposures(connps, options, warpstack = 'W')
+    panstarrsExpsSS = getPanSTARRSExposures(connps, options, warpstack = 'S')
     pso4ExpsWS = getPanSTARRSExposures(connpso4, options, warpstack = 'W')
     pso4ExpsSS = getPanSTARRSExposures(connpso4, options, warpstack = 'S')
 
-    with open(options.outputlocation + '/atlasExps.csv', 'w') as f:
-        w = csv.DictWriter(f, atlasExps[0].keys(), delimiter = ',')
-        w.writeheader()
-        for row in atlasExps:
-            w.writerow(row)
+    if len(atlasExps) > 0:
+        with open(options.outputlocation + '/atlasExps.csv', 'w') as f:
+            w = csv.DictWriter(f, atlasExps[0].keys(), delimiter = ',')
+            w.writeheader()
+            for row in atlasExps:
+                w.writerow(row)
 
-    with open(options.outputlocation + '/panstarrsExps.csv', 'w') as f:
-        w = csv.DictWriter(f, panstarrsExps[0].keys(), delimiter = ',')
-        w.writeheader()
-        for row in panstarrsExps:
-            w.writerow(row)
+    if len(panstarrsExpsWS) > 0:
+        with open(options.outputlocation + '/panstarrsExpsWS.csv', 'w') as f:
+            w = csv.DictWriter(f, panstarrsExpsWS[0].keys(), delimiter = ',')
+            w.writeheader()
+            for row in panstarrsExpsWS:
+                w.writerow(row)
 
-    with open(options.outputlocation + '/pso4ExpsWS.csv', 'w') as f:
-        w = csv.DictWriter(f, pso4ExpsWS[0].keys(), delimiter = ',')
-        w.writeheader()
-        for row in pso4ExpsWS:
-            w.writerow(row)
+    if len(panstarrsExpsSS) > 0:
+        with open(options.outputlocation + '/panstarrsExpsSS.csv', 'w') as f:
+            w = csv.DictWriter(f, panstarrsExpsSS[0].keys(), delimiter = ',')
+            w.writeheader()
+            for row in panstarrsExpsSS:
+                w.writerow(row)
 
-    with open(options.outputlocation + '/pso4ExpsSS.csv', 'w') as f:
-        w = csv.DictWriter(f, pso4ExpsSS[0].keys(), delimiter = ',')
-        w.writeheader()
-        for row in pso4ExpsSS:
-            w.writerow(row)
+    if len(pso4ExpsWS) > 0:
+        with open(options.outputlocation + '/pso4ExpsWS.csv', 'w') as f:
+            w = csv.DictWriter(f, pso4ExpsWS[0].keys(), delimiter = ',')
+            w.writeheader()
+            for row in pso4ExpsWS:
+                w.writerow(row)
+
+    if len(pso4ExpsSS) > 0:
+        with open(options.outputlocation + '/pso4ExpsSS.csv', 'w') as f:
+            w = csv.DictWriter(f, pso4ExpsSS[0].keys(), delimiter = ',')
+            w.writeheader()
+            for row in pso4ExpsSS:
+                w.writerow(row)
 
     connatlas.close()
     connps.close()
