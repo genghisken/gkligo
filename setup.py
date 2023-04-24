@@ -38,6 +38,7 @@ setup(
           'astropy',
           'mocpy',
           'pyYAML',
+          'python-daemon',
       ],
     python_requires='>=3.7',
     entry_points = {
