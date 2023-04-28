@@ -53,9 +53,26 @@ import os
 import time
 import logging
 
-debug_p = True
+def shutdown(signum, frame):  # signum and frame are mandatory
+    """shutdown.
+
+    Args:
+        signum:
+        frame:
+    """
+    sys.stdout.write("\nOuch...\n")
+    sys.exit(0)
+
 
 def writeMOC(inputFilePointer, outputMOCName, contour, logger):
+    """writeMOC.
+
+    Args:
+        inputFilePointer:
+        outputMOCName:
+        contour:
+        logger:
+    """
     from astropy.table import Table
     from astropy import units as u
     import astropy_healpix as ah
@@ -97,9 +114,14 @@ def writeMOC(inputFilePointer, outputMOCName, contour, logger):
     logger.info('MOC file %s written' % outputMOCName)
 
 
-def runLigoDaemon(options):
-    ### This does the "work" of the daemon
+def listen(options):
+    """listen.
 
+    Args:
+        options:
+    """
+    pid = os.getpid()
+    sys.stdout.write("\nListening... PID is %s\n" % pid)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -121,19 +143,15 @@ def runLigoDaemon(options):
     client_secret = config['client_secret']
     topic = config['topics']
 
-    # Connect as a consumer.
-    # Warning: don't share the client secret with others.
     consumer = Consumer(client_id=client_id,
                         client_secret=client_secret)
 
-    # Subscribe to topics and receive alerts
     consumer.subscribe(['igwn.gwalert'])
 
     while True:
-        for message in consumer.consume():
+        # Non zero timeout is required, otherwise consume blocks termination signals.
+        for message in consumer.consume(timeout=5):
             dataDict = json.loads(message.value().decode('utf-8'))
-            #for k, v in dataDict.items():
-            #    print(k, v)
             try:
                 superEventId = dataDict['superevent_id']
                 alertTimeStamp = dataDict['time_created'].replace(' ','T')
@@ -161,16 +179,12 @@ def runLigoDaemon(options):
             logger.info("")
 
 
-def start_daemon(options):
-    ### This launches the daemon in its context
+def startDaemon(options):
+    """startDaemon.
 
-    global debug_p
-
-    if debug_p:
-        print("eg_daemon: entered run()")
-        print("eg_daemon: pidfile = {}    logfile = {}".format(options.pidfile, options.logfile))
-        print("eg_daemon: about to start daemonization")
-
+    Args:
+        options:
+    """
 
     if options.terminal:
         err = sys.stderr
@@ -179,19 +193,20 @@ def start_daemon(options):
         out = open(options.daemonOutFile, 'w')
         err = open(options.daemonErrFile, 'w')
 
-    ### XXX pidfile is a context
     with daemon.DaemonContext(
         working_directory='/tmp',
         umask=0o002,
         pidfile=pidfile.TimeoutPIDLockFile(options.pidfile),
         stdout=out,
-        stderr=err
+        stderr=err,
+        signal_map={ signal.SIGTERM: shutdown }
         ) as context:
-        runLigoDaemon(options)
-
+        listen(options)
 
 
 def main():
+    """main.
+    """
     opts = docopt(__doc__, version='0.1')
     opts = cleanOptions(opts)
 
@@ -209,22 +224,14 @@ def main():
                 pid = f.read().strip()
                 sys.stderr.write("Daemon is already running (PID = %s). Stop and restart if you want to restart it.\n" % pid)
         else:
-            start_daemon(options)
-            # Give the daemon a few seconds to start
-            time.sleep(2)
-            with open(options.pidfile, mode='r') as f:
-                pid = f.read().strip()
-                print("Starting Daemon. PID = %s" % pid)
+            startDaemon(options)
 
     if options.action == 'stop':
         if os.path.exists(options.pidfile):
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
             print("Stopping daemon (PID = %s)." % pid)
-            os.kill(int(pid), signal.SIGKILL)
-            time.sleep(2)
-            if os.path.exists(options.pidfile):
-                os.remove(options.pidfile)
+            os.kill(int(pid), signal.SIGTERM)
         else:
             sys.stderr.write("Daemon is not running.\n")
 
@@ -234,22 +241,9 @@ def main():
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
             print("Stopping daemon (PID = %s)." % pid)
-            os.kill(pid, signal.SIGKILL)
-            time.sleep(2)
-            if os.path.exists(options.pidfile):
-                os.remove(options.pidfile)
+            os.kill(pid, signal.SIGTERM)
         else:
-            start_daemon(options)
-            time.sleep(2)
-            if os.path.exists(options.pidfile):
-                with open(options.pidfile, mode='r') as f:
-                    pid = f.read().strip()
-                print("Starting Daemon. PID = %s" % pid)
-            else:
-                print ("Daemon not started.")
-
-
-
+            startDaemon(options)
 
 
 
