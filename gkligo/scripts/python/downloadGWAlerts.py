@@ -42,7 +42,6 @@ E.g.:
 import sys
 __doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0])
 from docopt import docopt
-from __version__ import __version__
 
 from gcn_kafka import Consumer
 import json
@@ -210,7 +209,7 @@ def startDaemon(options):
 def main():
     """main.
     """
-    opts = docopt(__doc__, version=__version__)
+    opts = docopt(__doc__, version='0.0.10')
     opts = cleanOptions(opts)
 
     # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
