@@ -16,7 +16,9 @@ Usage:
   %s (-h | --help)
   %s --version
 
-where action is start|stop|restart
+where action is start|stop|restart|listen
+
+If action is listen, start in non-daemon mode. Otherwise use daemon mode.
 
 Options:
   -h --help                         Show this screen.
@@ -40,6 +42,7 @@ E.g.:
 import sys
 __doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0])
 from docopt import docopt
+from __version__ import __version__
 
 from gcn_kafka import Consumer
 import json
@@ -207,22 +210,33 @@ def startDaemon(options):
 def main():
     """main.
     """
-    opts = docopt(__doc__, version='0.1')
+    opts = docopt(__doc__, version=__version__)
     opts = cleanOptions(opts)
 
     # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
     options = Struct(**opts)
 
 
-    if options.action not in ['start', 'stop', 'restart']:
-        sys.stderr.write('Valid options for action are start|stop|restart\n')
+    if options.action not in ['start', 'stop', 'restart', 'listen']:
+        sys.stderr.write('Valid options for action are start|stop|restart|listen\n')
         sys.exit(1)
 
+    # First check that the listen option has been chosen. If so, start listening to the Kafka
+    # stream immediately, without daemonisation.
+
+    if options.action == 'listen':
+        if os.path.exists(options.pidfile):
+            with open(options.pidfile, mode='r') as f:
+                pid = f.read().strip()
+                sys.stderr.write("\nDaemon is already running (PID = %s). Kill the existing daemon first. E.g. use the stop option.\n" % pid)
+        else:
+            listen(options)
+    
     if options.action == 'start':
         if os.path.exists(options.pidfile):
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
-                sys.stderr.write("Daemon is already running (PID = %s). Stop and restart if you want to restart it.\n" % pid)
+                sys.stderr.write("\nDaemon is already running (PID = %s). Stop and restart if you want to restart it.\n" % pid)
         else:
             startDaemon(options)
 
@@ -233,7 +247,7 @@ def main():
             print("Stopping daemon (PID = %s)." % pid)
             os.kill(int(pid), signal.SIGTERM)
         else:
-            sys.stderr.write("Daemon is not running.\n")
+            sys.stderr.write("\nDaemon is not running.\n")
 
 
     if options.action == 'restart':
