@@ -241,7 +241,9 @@ def main():
             with open(options.pidfile, mode='r') as f:
                 pid = f.read().strip()
             print("Stopping daemon (PID = %s)." % pid)
-            os.kill(pid, signal.SIGTERM)
+            os.kill(int(pid), signal.SIGTERM)
+            time.sleep(5)
+            startDaemon(options)
         else:
             startDaemon(options)
 
