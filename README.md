@@ -12,7 +12,7 @@ It requires the following python packages:
 * docopt
 * pyYAML
 * numpy
-* ligo.skymap
+* ligo.skymap (via conda install)
 * astropy
 * mocpy
 
@@ -26,3 +26,5 @@ The code has been daemonised so one of the parameters will be start|restart|stop
 
 Also included is a script called generateGWReports. This will generate coverage reports (CSV files) from the three database (ATLAS, all sky Pan-STARRS, O4 follwup Pan-STARRS).
 
+TO DO:
+* Modify generateGWReports to load the GW meta into the database for convenience.

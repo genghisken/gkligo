@@ -124,68 +124,10 @@ def writeMeta(options, dataDict, logger):
     #import MySQLdb
     from astropy.io import fits
 
-    eventid = dataDict['superevent_id']
-    url = dataDict['urls']['gracedb']
-    far = None
-    instruments = None
-
     mjd = None
     distance = None
     distanceStd = None
-    classification = None
-    properties = None
-    significant = None
-    time = None
-    group = None
-    pipeline = None
-    alertType = dataDict['alert_type']
-    timeCreated = dataDict['time_created']
-
-    try:
-        time = dataDict['event']['time']
-    except KeyError as e:
-        logger.error("Can't find the time info.")
-
-    try:
-        group = dataDict['event']['group']
-    except KeyError as e:
-        logger.error("Can't find the group info.")
-
-    try:
-        pipeline = dataDict['event']['pipeline']
-    except KeyError as e:
-        logger.error("Can't find the pipeline info.")
-
-    try:
-        classification = dataDict['event']['classification']
-    except KeyError as e:
-        logger.error("Can't find the classification info.")
-
-    try:
-        significant = dataDict['event']['significant']
-    except KeyError as e:
-        logger.error("Can't find the significance info.")
-
-    try:
-        properties = dataDict['event']['properties']
-    except KeyError as e:
-        logger.error("Can't find the properties info.")
-
     eventMeta = {}
-
-    try:
-        far = float(dataDict['event']['far'])
-        # years = 1/(far*(24*3600*365.2425))
-    except ValueError as e:
-        logger.error("Can't find the FAR info.")
-    except KeyError as e:
-        logger.error("Can't find the FAR info.")
-
-    try:
-        instruments = dataDict['event']['instruments']
-    except KeyError as e:
-        logger.error("Can't find the instuments info.")
-
 
     # Some info (e.g. distance) only in the FITS file
     h = fits.open(BytesIO(base64.b64decode(dataDict['event']['skymap'])))
@@ -210,22 +152,13 @@ def writeMeta(options, dataDict, logger):
     # daemon. Write another script (e.g the reports script) that does that. Just
     # record the metadata for loading.
 
-    eventMeta = {'ALERT': {'event': {'far': far,
-                                     'instruments': instruments,
-                                     'significant': significant,
-                                     'classification': classification,
-                                     'properties': properties,
-                                     'time': time,
-                                     'group': group,
-                                     'pipeline': pipeline},
-                           'urls': {'gracedb': url},
-                           'superevent_id': eventid},
-                           'alert_type': alertType,
-                           'time_created': timeCreated,
+
+    # Remove the skymap from the dictionary.
+    dataDict['event'].pop('skymap')
+    eventMeta = {'ALERT': dataDict,
                  'HEADER': {'MJD-OBS': mjd,
                             'DISTMEAN': distance,
-                            'DISTSTD': distanceStd},
-                }
+                            'DISTSTD': distanceStd}}
 
     return eventMeta
 
@@ -271,9 +204,10 @@ def listen(options):
                 superEventId = dataDict['superevent_id']
                 eventType = superEventId[0] # M, T or S
 
-                alertTimeStamp = dataDict['time_created'].replace(' ','T')
-                alertType = dataDict['alert_type']
-                alertName = superEventId + '_' + alertType + '_' + alertTimeStamp
+                alertTimeStamp = dataDict['time_created'].replace(' ','T').replace('Z','').replace(':','').replace('-','')
+                alertType = dataDict['alert_type'].lower()
+                #alertName = superEventId + '_' + alertType + '_' + alertTimeStamp
+                alertName = superEventId + '_' + alertTimeStamp + '_' + alertType
                 logger.info("Alert Received: %s" % alertName) # Future version of this script will log the output.
 
                 # Act on all events unless we only want superevents. Need to think about the logic!
@@ -289,7 +223,7 @@ def listen(options):
                         for k,v in meta.items():
                             logger.info("%s = %s" % (k, str(v)))
                         # Overwrite the superevent info every time a new update arrives.
-                        with open(options.directory + '/' + superEventId + '.yaml', 'w') as yamlFile:
+                        with open(options.directory + '/' + alertName + '.yaml', 'w') as yamlFile:
                             yamlFile.write(yaml.dump(meta))
 
 
