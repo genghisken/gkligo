@@ -36,7 +36,8 @@ def getATLASExposures(conn, options):
                 `mjd`,
                 `ra` AS `raDeg`,
                 mag5sig AS `limiting_magnitude`,
-                `obs` AS `expname`
+                `obs` AS `expname`,
+                `obj`
             FROM
                 atlas_metadataddc
             WHERE
