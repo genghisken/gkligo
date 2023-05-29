@@ -167,9 +167,6 @@ def writeMeta(options, dataDict, logger):
     areas = {}
     for c in options.contours:
         areas['area' + str(c) = getContourArea(BytesIO(base64.b64decode(skymap)), float(c)/100.0, logger)
-    #area90 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.9, logger) 
-    #area50 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.5, logger) 
-    #area10 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.1, logger) 
 
     # Some info (e.g. distance) only in the FITS file
     h = fits.open(BytesIO(base64.b64decode(skymap)))
