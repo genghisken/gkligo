@@ -165,7 +165,7 @@ def writeMeta(options, dataDict, logger):
     skymap = dataDictCopy['event']['skymap']
 
     areas = {}
-    for c in options.contours:
+    for c in options.contours.split(','):
         areas['area' + str(c)] = getContourArea(BytesIO(base64.b64decode(skymap)), float(c)/100.0, logger)
 
     # Some info (e.g. distance) only in the FITS file
