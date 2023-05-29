@@ -159,6 +159,7 @@ def writeMeta(options, dataDict, logger):
     mjd = None
     distance = None
     distanceStd = None
+    creator = None
     eventMeta = {}
 
     dataDictCopy = deepcopy(dataDict)
@@ -187,6 +188,11 @@ def writeMeta(options, dataDict, logger):
     except KeyError as e:
         logger.error("The DISTSTD variable is missing.")
 
+    try:
+        creator = header['CREATOR']
+    except KeyError as e:
+        logger.error("The CREATOR variable is missing.")
+
     # Do NOT write to the database, which could potentially be locked and crash the
     # daemon. Write another script (e.g the reports script) that does that. Just
     # record the metadata for loading.
@@ -207,7 +213,8 @@ def writeMeta(options, dataDict, logger):
                  'EXTRA': areas,
                  'HEADER': {'MJD-OBS': mjd,
                             'DISTMEAN': distance,
-                            'DISTSTD': distanceStd}}
+                            'DISTSTD': distanceStd,
+                            'CREATOR': creator}}
 
     return eventMeta
 
