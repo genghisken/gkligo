@@ -58,6 +58,7 @@ import signal
 import os
 import time
 import logging
+from copy import deepcopy
 
 def shutdown(signum, frame):  # signum and frame are mandatory
     """shutdown.
@@ -68,6 +69,38 @@ def shutdown(signum, frame):  # signum and frame are mandatory
     """
     sys.stdout.write("\nOuch...\n")
     sys.exit(0)
+
+
+def getContourArea(inputFilePointer, contour, logger):
+
+    from astropy.table import Table
+    from astropy import units as u
+    import numpy as np
+    import math
+    from ligo.skymap.moc import uniq2pixarea
+
+    # Read and verify the input
+    skymap = Table.read(inputFilePointer, format='fits')
+
+    # Sort by prob density of pixel
+    skymap.sort('PROBDENSITY', reverse=True)
+
+    # Get area*probdensity for each pixel
+    pixel_area = uniq2pixarea(skymap['UNIQ'])
+
+    # Probability per pixel
+    prob = pixel_area*skymap['PROBDENSITY']
+    cumprob = np.cumsum(prob)
+
+    # Should be 1.0. But need not be.
+    sumprob = np.sum(prob)
+
+    # Find the index where contour of prob is inside
+    i = cumprob.searchsorted(contour*sumprob)
+    area = float(pixel_area[:i].sum() * (180/math.pi)**2)
+
+    return area
+
 
 
 def writeMOC(inputFilePointer, outputMOCName, contour, logger):
@@ -81,7 +114,6 @@ def writeMOC(inputFilePointer, outputMOCName, contour, logger):
     """
     from astropy.table import Table
     from astropy import units as u
-    import astropy_healpix as ah
     import numpy as np
     import math
     from ligo.skymap.moc import uniq2pixarea
@@ -129,8 +161,18 @@ def writeMeta(options, dataDict, logger):
     distanceStd = None
     eventMeta = {}
 
+    dataDictCopy = deepcopy(dataDict)
+    skymap = dataDictCopy['event']['skymap']
+
+    areas = {}
+    for c in options.contours:
+        areas['area' + str(c) = getContourArea(BytesIO(base64.b64decode(skymap)), float(c)/100.0, logger)
+    #area90 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.9, logger) 
+    #area50 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.5, logger) 
+    #area10 = getContourArea(BytesIO(base64.b64decode(skymap)), 0.1, logger) 
+
     # Some info (e.g. distance) only in the FITS file
-    h = fits.open(BytesIO(base64.b64decode(dataDict['event']['skymap'])))
+    h = fits.open(BytesIO(base64.b64decode(skymap)))
     header = h[1].header
 
     try:
@@ -154,8 +196,18 @@ def writeMeta(options, dataDict, logger):
 
 
     # Remove the skymap from the dictionary.
-    dataDict['event'].pop('skymap')
-    eventMeta = {'ALERT': dataDict,
+    try:
+        dataDictCopy['event'].pop('skymap')
+    except KeyError as e:
+        pass
+
+    try:
+        dataDictCopy.pop('external_coinc')
+    except KeyError as e:
+        pass
+
+    eventMeta = {'ALERT': dataDictCopy,
+                 'EXTRA': areas,
                  'HEADER': {'MJD-OBS': mjd,
                             'DISTMEAN': distance,
                             'DISTSTD': distanceStd}}
@@ -243,6 +295,7 @@ def listen(options):
 
 
             except KeyError as e:
+                logger.error("Something went wrong.")
                 logger.error(e)
                 pass
             logger.info("")
