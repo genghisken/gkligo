@@ -113,6 +113,7 @@ def writeMOC(inputFilePointer, outputMOCName, contour, logger):
         logger:
     """
     from astropy.table import Table
+    from astropy.io import fits
     from astropy import units as u
     import numpy as np
     import math
@@ -149,6 +150,15 @@ def writeMOC(inputFilePointer, outputMOCName, contour, logger):
     skymap = skymap['UNIQ',]
     logger.info(skymap.info)
     skymap.write(outputMOCName, format='fits', overwrite=True)
+
+    # 2023-09-21 KWS There's a bug in MOCpy that requires format to be '1K'
+    #                rather than the default 'K' (which is perfectly valid).
+    h = fits.open(outputMOCName)
+    header = h[1].header
+    header['TFORM1'] = '1K'
+    h.writeto(outputMOCName, overwrite=True)
+    h.close()
+
     logger.info('MOC file %s written' % outputMOCName)
 
 
