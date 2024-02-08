@@ -292,7 +292,7 @@ def listen(options):
                             logger.info("%s = %s" % (k, str(v)))
                         # Overwrite the superevent info every time a new update arrives.
                         if options.organise:
-                            os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                            os.makedirs(options.directory + '/' + alertDir, exist_ok = True)
                             with open(options.directory + '/' + alertDir + '/meta.yaml', 'w') as yamlFile:
                                 yamlFile.write(yaml.dump(meta))
                         else:
@@ -303,7 +303,7 @@ def listen(options):
                 if dataDict['event'] is not None and options.writeMap:
                     skymap = dataDict['event']['skymap']
                     if options.organise:
-                        os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                        os.makedirs(options.directory + '/' + alertDir, exist_ok = True)
                         with open(options.directory + '/' + alertDir + '/map.fits', 'wb') as fitsFile:
                             fitsFile.write(base64.b64decode(skymap))
                     else:
@@ -316,7 +316,7 @@ def listen(options):
                         try:
                             c = float(contour)/100.0
                             if options.organise:
-                                os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                                os.makedirs(options.directory + '/' + alertDir, exist_ok = True)
                                 writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertDir + '/' + contour + '.moc', c, logger)
                             else:
                                 writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
