@@ -316,12 +316,10 @@ def listen(options):
                         try:
                             c = float(contour)/100.0
                             if options.organise:
+                                os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                                writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertDir + '/' + contour + '.moc', c, logger)
                             else:
-                                if options.organise:
-                                    os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
-                                    writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertDir + '/' + contour + '.moc', c, logger)
-                                else:
-                                    writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
+                                writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
                         except ValueError as e:
                             logger.error("Contour %s is not a float" % contour)
 
