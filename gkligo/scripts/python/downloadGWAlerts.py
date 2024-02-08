@@ -12,7 +12,7 @@ astropy
 mocpy
 
 Usage:
-  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>] [--daemonErrFile=<deamonErrFile>] [--daemonOutFile=<deamonOutFile>] [--terminal] [--writemeta] [--superevents]
+  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>] [--daemonErrFile=<deamonErrFile>] [--daemonOutFile=<deamonOutFile>] [--terminal] [--writemeta] [--superevents] [--organise]
   %s (-h | --help)
   %s --version
 
@@ -34,6 +34,7 @@ Options:
   --terminal                        Override the Daemon error and out files and write to the terminal. 
   --writemeta                       Attempt to write the event meta into a file.
   --superevents                     Only deal with superevents. Ignore Mock and Test events.
+  --organise                        Instead of writing a long unique filename, write a directory structure.
 
 E.g.:
   %s config.yaml start --directory=/home/atls/ligo --writeMap
@@ -274,6 +275,7 @@ def listen(options):
                 alertType = dataDict['alert_type'].lower()
                 #alertName = superEventId + '_' + alertType + '_' + alertTimeStamp
                 alertName = superEventId + '_' + alertTimeStamp + '_' + alertType
+                alertDir = alertName.replace('_','/',1)
                 logger.info("Alert Received: %s" % alertName) # Future version of this script will log the output.
 
                 # Act on all events unless we only want superevents. Need to think about the logic!
@@ -289,21 +291,37 @@ def listen(options):
                         for k,v in meta.items():
                             logger.info("%s = %s" % (k, str(v)))
                         # Overwrite the superevent info every time a new update arrives.
-                        with open(options.directory + '/' + alertName + '.yaml', 'w') as yamlFile:
-                            yamlFile.write(yaml.dump(meta))
+                        if options.organise:
+                            os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                            with open(options.directory + '/' + alertDir + '/meta.yaml', 'w') as yamlFile:
+                                yamlFile.write(yaml.dump(meta))
+                        else:
+                            with open(options.directory + '/' + alertName + '.yaml', 'w') as yamlFile:
+                                yamlFile.write(yaml.dump(meta))
 
 
                 if dataDict['event'] is not None and options.writeMap:
                     skymap = dataDict['event']['skymap']
-                    with open(options.directory + '/' + alertName + '.fits', 'wb') as fitsFile:
-                        fitsFile.write(base64.b64decode(skymap))
+                    if options.organise:
+                        os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                        with open(options.directory + '/' + alertDir + '/map.fits', 'wb') as fitsFile:
+                            fitsFile.write(base64.b64decode(skymap))
+                    else:
+                        with open(options.directory + '/' + alertName + '.fits', 'wb') as fitsFile:
+                            fitsFile.write(base64.b64decode(skymap))
 
                 if dataDict['event'] is not None and options.writeMOC:
                     for contour in options.contours.split(','):
                         skymap = dataDict['event']['skymap']
                         try:
                             c = float(contour)/100.0
-                            writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
+                            if options.organise:
+                            else:
+                                if options.organise:
+                                    os.makdirs(options.directory + '/' + alertDir, exist_ok = True)
+                                    writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertDir + '/' + contour + '.moc', c, logger)
+                                else:
+                                    writeMOC(BytesIO(base64.b64decode(skymap)), options.directory + '/' + alertName + '_' + contour + '.moc', c, logger)
                         except ValueError as e:
                             logger.error("Contour %s is not a float" % contour)
 
