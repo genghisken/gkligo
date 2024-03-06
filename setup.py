@@ -36,9 +36,11 @@ setup(
           'numpy',
           'ligo.skymap',
           'astropy',
+          'astropy_healpix',
           'mocpy',
           'pyYAML',
           'python-daemon',
+          'mysqlclient',
       ],
     python_requires='>=3.7',
     entry_points = {
