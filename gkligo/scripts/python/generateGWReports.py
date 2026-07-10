@@ -25,8 +25,11 @@ import sys
 __doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0])
 from docopt import docopt
 import os, shutil, re, csv, subprocess
-from gkutils.commonutils import Struct, cleanOptions, dbConnect
+import pymysql
+pymysql.install_as_MySQLdb()
 import MySQLdb
+
+from gkutils.commonutils import Struct, cleanOptions, dbConnect
 import glob
 import yaml
 

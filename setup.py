@@ -40,7 +40,7 @@ setup(
           'mocpy',
           'pyYAML',
           'python-daemon',
-          'mysqlclient==2.1.1',
+          'pymysql',
       ],
     python_requires='>=3.7',
     entry_points = {
