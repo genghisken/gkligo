@@ -12,7 +12,6 @@ time being, since I can get at more generic MM events using the same credentials
 
 Requires:
 numpy
-ligo.skymap
 astropy
 mocpy
 
@@ -66,6 +65,31 @@ import os
 import time
 import logging
 from copy import deepcopy
+
+import numpy as np
+
+# Replace ligo.skymap.moc.uniq2pixarea
+
+def uniq2order(uniq):
+    """
+    Convert HEALPix NUNIQ index to HEALPix order.
+    """
+    uniq = np.asarray(uniq, dtype=np.int64)
+
+    return (np.floor(np.log2(uniq)).astype(int) // 2) - 1
+
+
+def uniq2pixarea(uniq):
+    """
+    Return area of HEALPix NUNIQ pixels in steradians.
+    """
+    order = uniq2order(uniq)
+
+    nside = 1 << order
+    npix = 12 * nside * nside
+
+    return 4.0 * np.pi / npix
+
 
 def shutdown(signum, frame):  # signum and frame are mandatory
     """shutdown.
@@ -155,10 +179,12 @@ def listen(options):
                 if options.organise:
                     os.makedirs(options.directory + '/' + alertDir, exist_ok = True)
                     with open(options.directory + '/' + alertDir + '/map.fits', 'wb') as fitsFile:
-                        fitsFile.write(base64.b64decode(skymap))
+                        #fitsFile.write(base64.b64decode(skymap))
+                        fitsFile.write(skymap)
                 else:
                     with open(options.directory + '/' + alertName + '.fits', 'wb') as fitsFile:
-                        fitsFile.write(base64.b64decode(skymap))
+                        #fitsFile.write(base64.b64decode(skymap))
+                        fitsFile.write(skymap)
 
             if dataDict['event'] is not None and options.writeMOC:
                 for contour in options.contours.split(','):
@@ -234,9 +260,8 @@ def getContourArea(inputFilePointer, contour, logger):
 
     from astropy.table import Table
     from astropy import units as u
-    import numpy as np
     import math
-    from ligo.skymap.moc import uniq2pixarea
+    #from ligo.skymap.moc import uniq2pixarea
 
     # Read and verify the input
     skymap = Table.read(inputFilePointer, format='fits')
@@ -276,7 +301,7 @@ def writeMOC(inputFilePointer, outputMOCName, contour, logger):
     from astropy import units as u
     import numpy as np
     import math
-    from ligo.skymap.moc import uniq2pixarea
+    #from ligo.skymap.moc import uniq2pixarea
 
     # Read and verify the input
     skymap = Table.read(inputFilePointer, format='fits')
