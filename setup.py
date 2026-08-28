@@ -30,11 +30,11 @@ setup(
     ],
     install_requires=[
           'gcn-kafka',
+          'hop-client',
           'healpy',
           'gkutils',
           'docopt',
           'numpy',
-          'ligo.skymap',
           'astropy',
           'astropy_healpix',
           'mocpy',
@@ -44,6 +44,6 @@ setup(
       ],
     python_requires='>=3.7',
     entry_points = {
-        'console_scripts': ['downloadGWAlerts=gkligo.scripts.python.downloadGWAlerts:main','generateGWReports=gkligo.scripts.python.generateGWReports:main'],
+        'console_scripts': ['downloadGWAlerts=gkligo.scripts.python.downloadGWAlerts:main','generateGWReports=gkligo.scripts.python.generateGWReports:main','downloadMMAlerts=gkligo.scripts.python.downloadMMAlerts:main'],
     },
 )
