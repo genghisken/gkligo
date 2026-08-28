@@ -16,7 +16,7 @@ class hop_reader():
         # When we go live, set StartPosition.LATEST, not EARLIEST (i.e. only consume alerts since the daemon started).
         stream = Stream(
             auth=hop_auth,
-            start_at=StartPosition.EARLIEST,
+            start_at=StartPosition.LATEST,
             until_eos=False
         )
 
