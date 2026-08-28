@@ -44,6 +44,10 @@ setup(
       ],
     python_requires='>=3.7',
     entry_points = {
-        'console_scripts': ['downloadGWAlerts=gkligo.scripts.python.downloadGWAlerts:main','generateGWReports=gkligo.scripts.python.generateGWReports:main','downloadMMAlerts=gkligo.scripts.python.downloadMMAlerts:main'],
+        'console_scripts': [
+            'downloadGWAlerts=gkligo.scripts.python.downloadGWAlerts:main',
+            'mmaListener=gkligo.scripts.python.downloadMMAlerts:main',
+            'generateGWReports=gkligo.scripts.python.generateGWReports:main',
+        ],
     },
 )
