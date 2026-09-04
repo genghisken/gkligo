@@ -16,7 +16,7 @@ astropy
 mocpy
 
 Usage:
-  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>] [--daemonErrFile=<deamonErrFile>] [--daemonOutFile=<deamonOutFile>] [--terminal] [--writemeta] [--superevents] [--organise]
+  %s <configFile> <action> [--writeMap] [--writeMOC] [--directory=<directory>] [--contours=<contours>] [--pidfile=<pidfile>] [--logfile=<logfile>] [--daemonErrFile=<deamonErrFile>] [--daemonOutFile=<deamonOutFile>] [--terminal] [--writemeta] [--superevents] [--organise] [--earliest]
   %s (-h | --help)
   %s --version
 
@@ -39,6 +39,7 @@ Options:
   --writemeta                       Attempt to write the event meta into a file.
   --superevents                     Only deal with superevents. Ignore Mock and Test events.
   --organise                        Instead of writing a long unique filename, write a directory structure.
+  --earliest                        Start from the earliest message in the queue. (Default is the latest.)
 
 E.g.:
   %s config.yaml start --directory=/home/atls/ligo --writeMap
@@ -52,7 +53,14 @@ __doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0], sys.arg
 from docopt import docopt
 
 #from gcn_kafka import Consumer
-from hopskotch_utils import hop_reader
+
+# Horrible hack to make sure I can import a module both locally and as the executable.
+# There should be a tidier way to do this!
+try:
+    from .hopskotch_utils import hop_reader
+except ImportError:
+    from hopskotch_utils import hop_reader
+
 import yaml
 import json
 import base64
@@ -134,7 +142,7 @@ def listen(options):
     group_id = config['hopskotch']['group_id']
 
     # Connect to Hopskotch!
-    hr = hop_reader(scimma_auth_username, scimma_auth_password, topics[0], group_id, is_gcn=False)
+    hr = hop_reader(scimma_auth_username, scimma_auth_password, topics[0], group_id, is_gcn=False, options.earliest)
     nalert = 0
 
     while True:
