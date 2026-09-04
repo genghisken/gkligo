@@ -142,7 +142,7 @@ def listen(options):
     group_id = config['hopskotch']['group_id']
 
     # Connect to Hopskotch!
-    hr = hop_reader(scimma_auth_username, scimma_auth_password, topics[0], group_id, is_gcn=False, options.earliest)
+    hr = hop_reader(scimma_auth_username, scimma_auth_password, topics[0], group_id, is_gcn=False, earliest=options.earliest)
     nalert = 0
 
     while True:
